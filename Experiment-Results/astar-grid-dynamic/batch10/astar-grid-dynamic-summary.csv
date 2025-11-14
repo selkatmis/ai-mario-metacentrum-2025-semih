@@ -1,0 +1,5 @@
+searchSteps,startWeight,endWeight,exponent,dynamicEnabled,gamesPlayed,wins,winRate,avgRunTime,avgPlanningTime,avgGameTicks,avgNodesEvaluated,avgMostBacktrackedNodes,avgPercentageTravelled
+3,1.2,0.6,3.0,true,215,215,1.0000,1282.3721,1278.1581,467.1953,106718.0186,627.2744,1.0000
+3,1.2,1.0,3.0,true,215,215,1.0000,1292.8791,1290.6000,465.0047,109959.7907,643.2884,1.0000
+3,1.6,0.6,3.0,true,215,214,0.9953,1039.0140,1036.7302,481.6093,92239.0791,458.1581,0.9999
+3,1.6,1.0,3.0,true,215,215,1.0000,966.0326,964.0512,482.1070,84961.5209,463.3349,1.0000

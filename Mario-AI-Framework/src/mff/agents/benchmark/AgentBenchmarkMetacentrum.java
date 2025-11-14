@@ -61,6 +61,34 @@ public class AgentBenchmarkMetacentrum {
                 AStarTree.DISTANCE_FROM_PATH_TOLERANCE = Float.parseFloat(args[2]);
                 AStarTree.DISTANCE_FROM_PATH_ADDITIVE_PENALTY = Float.parseFloat(args[3]);
                 AStarTree.DISTANCE_FROM_PATH_MULTIPLICATIVE_PENALTY = DFPMP;
+                if (args.length > 4) {
+                    AStarTree.TIME_TO_FINISH_WEIGHT_START = Float.parseFloat(args[4]);
+                } else {
+                    AStarTree.TIME_TO_FINISH_WEIGHT_START = AStarTree.TIME_TO_FINISH_WEIGHT;
+                }
+                if (args.length > 5) {
+                    AStarTree.TIME_TO_FINISH_WEIGHT_END = Float.parseFloat(args[5]);
+                } else {
+                    AStarTree.TIME_TO_FINISH_WEIGHT_END = AStarTree.TIME_TO_FINISH_WEIGHT;
+                }
+                if (args.length > 6) {
+                    AStarTree.TIME_TO_FINISH_WEIGHT_EXPONENT = Float.parseFloat(args[6]);
+                } else {
+                    AStarTree.TIME_TO_FINISH_WEIGHT_EXPONENT = 1f;
+                }
+                if (args.length > 7) {
+                    AStarTree.USE_DYNAMIC_TIME_WEIGHT = Boolean.parseBoolean(args[7]);
+                } else {
+                    AStarTree.USE_DYNAMIC_TIME_WEIGHT = false;
+                }
+                mff.agents.astarGrid.Agent.setTimeToFinishWeight(AStarTree.TIME_TO_FINISH_WEIGHT);
+                mff.agents.astarGrid.Agent.setDynamicTimeWeightEndpoints(
+                        AStarTree.TIME_TO_FINISH_WEIGHT_START,
+                        AStarTree.TIME_TO_FINISH_WEIGHT_END);
+                mff.agents.astarGrid.Agent.setDynamicTimeWeightExponent(
+                        AStarTree.TIME_TO_FINISH_WEIGHT_EXPONENT);
+                mff.agents.astarGrid.Agent.enableDynamicTimeWeighting(
+                        AStarTree.USE_DYNAMIC_TIME_WEIGHT);
             } catch (Exception e) {
                 System.out.println("Meta parameters not set successfully.");
                 throw e;
@@ -74,6 +102,10 @@ public class AgentBenchmarkMetacentrum {
                             + "-DFPT-" + AStarTree.DISTANCE_FROM_PATH_TOLERANCE
                             + "-DFPAP-" + AStarTree.DISTANCE_FROM_PATH_ADDITIVE_PENALTY
                             + "-DFPMP-" + AStarTree.DISTANCE_FROM_PATH_MULTIPLICATIVE_PENALTY
+                            + "-DTWS-" + AStarTree.TIME_TO_FINISH_WEIGHT_START
+                            + "-DTWE-" + AStarTree.TIME_TO_FINISH_WEIGHT_END
+                            + "-DTWX-" + AStarTree.TIME_TO_FINISH_WEIGHT_EXPONENT
+                            + "-DTW-" + AStarTree.USE_DYNAMIC_TIME_WEIGHT
                             + ".csv");
 
                     if (log == null)
@@ -85,6 +117,10 @@ public class AgentBenchmarkMetacentrum {
                     logWriter.write("DFPT:" + AStarTree.DISTANCE_FROM_PATH_TOLERANCE + "\n");
                     logWriter.write("DFPAP:" + AStarTree.DISTANCE_FROM_PATH_ADDITIVE_PENALTY + "\n");
                     logWriter.write("DFPMP:" + AStarTree.DISTANCE_FROM_PATH_MULTIPLICATIVE_PENALTY + "\n");
+                    logWriter.write("DTW_ENABLED:" + AStarTree.USE_DYNAMIC_TIME_WEIGHT + "\n");
+                    logWriter.write("DTW_START:" + AStarTree.TIME_TO_FINISH_WEIGHT_START + "\n");
+                    logWriter.write("DTW_END:" + AStarTree.TIME_TO_FINISH_WEIGHT_END + "\n");
+                    logWriter.write("DTW_EXPONENT:" + AStarTree.TIME_TO_FINISH_WEIGHT_EXPONENT + "\n");
                     logWriter.write("level,win/fail,% travelled,run time,game ticks,planning time,total plannings,nodes evaluated,most backtracked nodes\n");
 
                     warmup(agentType);
@@ -115,7 +151,7 @@ public class AgentBenchmarkMetacentrum {
                 // only 30 seconds to speed-up timeout if agent is stuck
                 agentStats = game.runGame(agent, level, 30, 0, false);
                 agentStats.level = levelsName + "-" + i;
-                printStats(log, agentStats, ((IAgentBenchmarkBacktrack) agent).getMostBacktrackedNodes());
+                printStats(log, agentStats);
             }
         }
         else {
@@ -127,7 +163,7 @@ public class AgentBenchmarkMetacentrum {
                 // only 30 seconds to speed-up timeout if agent is stuck
                 agentStats = game.runGame(agent, level, 30, 0, false);
                 agentStats.level = levelsName + "-" + i;
-                printStats(log, agentStats, 0);
+                printStats(log, agentStats);
             }
         }
     }
@@ -145,7 +181,7 @@ public class AgentBenchmarkMetacentrum {
                 // only 30 seconds to speed-up timeout if agent is stuck
                 agentStats = game.runGame(agent, level, 30, 0, false);
                 agentStats.level = "Krys-" + i;
-                printStats(log, agentStats, ((IAgentBenchmarkBacktrack) agent).getMostBacktrackedNodes());
+                printStats(log, agentStats);
             }
         }
         else {
@@ -159,7 +195,7 @@ public class AgentBenchmarkMetacentrum {
                 // only 30 seconds to speed-up timeout if agent is stuck
                 agentStats = game.runGame(agent, level, 30, 0, false);
                 agentStats.level = "Krys-" + i;
-                printStats(log, agentStats, 0);
+                printStats(log, agentStats);
             }
         }
     }
@@ -176,7 +212,7 @@ public class AgentBenchmarkMetacentrum {
                 String level = getLevel("./levels/original/lvl-" + i + ".txt");
                 agentStats = game.runGame(agent, level,200, 0, false);
                 agentStats.level = "Mario-" + i;
-                printStats(log, agentStats, ((IAgentBenchmarkBacktrack) agent).getMostBacktrackedNodes());
+                printStats(log, agentStats);
             }
         }
         else {
@@ -187,7 +223,7 @@ public class AgentBenchmarkMetacentrum {
                 String level = getLevel("./levels/original/lvl-" + i + ".txt");
                 agentStats = game.runGame(agent, level, 200, 0, false);
                 agentStats.level = "Mario-" + i;
-                printStats(log, agentStats, 0);
+                printStats(log, agentStats);
             }
         }
     }
@@ -210,7 +246,7 @@ public class AgentBenchmarkMetacentrum {
         }
     }
 
-    private static void printStats(FileWriter writer, AgentStats stats, int mostBacktrackedNodes) throws IOException {
+    private static void printStats(FileWriter writer, AgentStats stats) throws IOException {
         writer.write(stats.level + ','
                 + stats.win + ','
                 + twoFractionDigitsDotSeparator.format(stats.percentageTravelled) + ','
@@ -219,7 +255,7 @@ public class AgentBenchmarkMetacentrum {
                 + stats.totalPlanningTime + ','
                 + stats.searchCalls + ','
                 + stats.nodesEvaluated + ','
-                + mostBacktrackedNodes + '\n'
+                + stats.mostBacktrackedNodes + '\n'
         );
     }
 

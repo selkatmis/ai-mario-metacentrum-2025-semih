@@ -31,9 +31,9 @@ public class GridPathVisualizer {
             }
 
             if (levelTilesWithPath[char_counter % levelTiles.length][char_counter / levelTiles.length] == NUMBER_NOT_IN_LEVEL_TILE_VALUES)
-                sb.append('■');
+                sb.append('#');
             else if (levelTilesWithPath[char_counter % levelTiles.length][char_counter / levelTiles.length] == WAYPOINT)
-                sb.append('●');
+                sb.append('o');
             else
                 sb.append(c);
 

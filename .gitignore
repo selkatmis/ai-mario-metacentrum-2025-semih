@@ -1,5 +1,8 @@
 .idea
 out
+*.jar
+*.log
+*.class
 *.iml
 Mario-AI-Framework/agent-benchmark
 Mario-AI-Framework/clone-benchmark

@@ -12,6 +12,20 @@ import java.util.ArrayList;
 
 public class Agent implements IMarioAgentMFF, IAgentBenchmark, IGridHeuristic, IAgentBenchmarkBacktrack {
 
+    private static final int DEFAULT_SEARCH_STEPS = 3;
+    private static final float DEFAULT_TIME_TO_FINISH_WEIGHT = 2f;
+    private static final boolean DEFAULT_USE_DYNAMIC_TIME_WEIGHT = false;
+    private static final float DEFAULT_TIME_TO_FINISH_WEIGHT_START = DEFAULT_TIME_TO_FINISH_WEIGHT;
+    private static final float DEFAULT_TIME_TO_FINISH_WEIGHT_END = DEFAULT_TIME_TO_FINISH_WEIGHT;
+    private static final float DEFAULT_TIME_TO_FINISH_WEIGHT_EXPONENT = 1f;
+
+    private static int configuredSearchSteps = DEFAULT_SEARCH_STEPS;
+    private static float configuredTimeToFinishWeight = DEFAULT_TIME_TO_FINISH_WEIGHT;
+    private static boolean configuredUseDynamicTimeWeight = DEFAULT_USE_DYNAMIC_TIME_WEIGHT;
+    private static float configuredTimeToFinishWeightStart = DEFAULT_TIME_TO_FINISH_WEIGHT_START;
+    private static float configuredTimeToFinishWeightEnd = DEFAULT_TIME_TO_FINISH_WEIGHT_END;
+    private static float configuredTimeToFinishWeightExponent = DEFAULT_TIME_TO_FINISH_WEIGHT_EXPONENT;
+
     private ArrayList<boolean[]> actionsList = new ArrayList<>();
     private float furthestDistance = -1;
     private boolean finished = false;
@@ -24,6 +38,11 @@ public class Agent implements IMarioAgentMFF, IAgentBenchmark, IGridHeuristic, I
     public void initialize(MarioForwardModelSlim model) {
         AStarTree.winFound = false;
         AStarTree.exitTileX = model.getWorld().level.exitTileX * 16;
+        AStarTree.TIME_TO_FINISH_WEIGHT = configuredTimeToFinishWeight;
+        AStarTree.USE_DYNAMIC_TIME_WEIGHT = configuredUseDynamicTimeWeight;
+        AStarTree.TIME_TO_FINISH_WEIGHT_START = configuredTimeToFinishWeightStart;
+        AStarTree.TIME_TO_FINISH_WEIGHT_END = configuredTimeToFinishWeightEnd;
+        AStarTree.TIME_TO_FINISH_WEIGHT_EXPONENT = configuredTimeToFinishWeightExponent;
     }
 
     @Override
@@ -40,7 +59,7 @@ public class Agent implements IMarioAgentMFF, IAgentBenchmark, IGridHeuristic, I
                 return actionsList.remove(actionsList.size() - 1);
         }
 
-        AStarTree tree = new AStarTree(model, 3, levelTilesWithPath);
+        AStarTree tree = new AStarTree(model, configuredSearchSteps, levelTilesWithPath);
         ArrayList<boolean[]> newActionsList = tree.search(timer);
         totalSearchCalls++;
         this.totalNodesEvaluated += tree.nodesEvaluated;
@@ -85,5 +104,67 @@ public class Agent implements IMarioAgentMFF, IAgentBenchmark, IGridHeuristic, I
     @Override
     public String getAgentName() {
         return "MFF A* Grid Agent";
+    }
+
+    public static void setSearchSteps(int searchSteps) {
+        if (searchSteps <= 0)
+            throw new IllegalArgumentException("searchSteps must be positive.");
+        configuredSearchSteps = searchSteps;
+    }
+
+    public static int getSearchSteps() {
+        return configuredSearchSteps;
+    }
+
+    public static void setTimeToFinishWeight(float weight) {
+        if (weight <= 0)
+            throw new IllegalArgumentException("timeToFinishWeight must be positive.");
+        configuredTimeToFinishWeight = weight;
+    }
+
+    public static float getTimeToFinishWeight() {
+        return configuredTimeToFinishWeight;
+    }
+
+    public static void enableDynamicTimeWeighting(boolean enabled) {
+        configuredUseDynamicTimeWeight = enabled;
+    }
+
+    public static boolean isDynamicTimeWeightingEnabled() {
+        return configuredUseDynamicTimeWeight;
+    }
+
+    public static void setDynamicTimeWeightEndpoints(float startWeight, float endWeight) {
+        if (startWeight <= 0 || endWeight <= 0)
+            throw new IllegalArgumentException("Dynamic time weights must be positive.");
+        configuredTimeToFinishWeightStart = startWeight;
+        configuredTimeToFinishWeightEnd = endWeight;
+    }
+
+    public static float getDynamicTimeWeightStart() {
+        return configuredTimeToFinishWeightStart;
+    }
+
+    public static float getDynamicTimeWeightEnd() {
+        return configuredTimeToFinishWeightEnd;
+    }
+
+    public static void setDynamicTimeWeightExponent(float exponent) {
+        if (Float.isNaN(exponent) || Float.isInfinite(exponent))
+            throw new IllegalArgumentException("Exponent must be a finite number.");
+        configuredTimeToFinishWeightExponent = exponent;
+    }
+
+    public static float getDynamicTimeWeightExponent() {
+        return configuredTimeToFinishWeightExponent;
+    }
+
+    public static void resetParameters() {
+        configuredSearchSteps = DEFAULT_SEARCH_STEPS;
+        configuredTimeToFinishWeight = DEFAULT_TIME_TO_FINISH_WEIGHT;
+        configuredUseDynamicTimeWeight = DEFAULT_USE_DYNAMIC_TIME_WEIGHT;
+        configuredTimeToFinishWeightStart = DEFAULT_TIME_TO_FINISH_WEIGHT_START;
+        configuredTimeToFinishWeightEnd = DEFAULT_TIME_TO_FINISH_WEIGHT_END;
+        configuredTimeToFinishWeightExponent = DEFAULT_TIME_TO_FINISH_WEIGHT_EXPONENT;
     }
 }

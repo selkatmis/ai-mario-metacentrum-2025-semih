@@ -31,6 +31,10 @@ public class AStarTree {
 
     public static float NODE_DEPTH_WEIGHT = 1f;
     public static float TIME_TO_FINISH_WEIGHT = 2f;
+    public static boolean USE_DYNAMIC_TIME_WEIGHT = false;
+    public static float TIME_TO_FINISH_WEIGHT_START = TIME_TO_FINISH_WEIGHT;
+    public static float TIME_TO_FINISH_WEIGHT_END = TIME_TO_FINISH_WEIGHT;
+    public static float TIME_TO_FINISH_WEIGHT_EXPONENT = 1f;
     public static float DISTANCE_FROM_PATH_TOLERANCE = 1;
     public static float DISTANCE_FROM_PATH_ADDITIVE_PENALTY = 5;
     public static float DISTANCE_FROM_PATH_MULTIPLICATIVE_PENALTY = 5;
@@ -74,11 +78,28 @@ public class AStarTree {
     
     private float calculateCost(MarioForwardModelSlim nextState, int nodeDepth) {
         float timeToFinish = (exitTileX - nextState.getMarioX()) / maxMarioSpeedX;
+        float timeToFinishWeight = computeTimeToFinishWeight(nextState);
         float distanceFromGridPathCost = calculateDistanceFromGridPathCost(nextState);
         return NODE_DEPTH_WEIGHT * nodeDepth
-                + TIME_TO_FINISH_WEIGHT * timeToFinish
+                + timeToFinishWeight * timeToFinish
                 + distanceFromGridPathCost;
 	}
+
+    private float computeTimeToFinishWeight(MarioForwardModelSlim nextState) {
+        if (!USE_DYNAMIC_TIME_WEIGHT) {
+            return TIME_TO_FINISH_WEIGHT;
+        }
+
+        float totalDistance = Math.max(1f, exitTileX - marioXStart);
+        float travelled = clamp(nextState.getMarioX() - marioXStart, 0f, totalDistance);
+        float progress = travelled / totalDistance;
+
+        float exponent = TIME_TO_FINISH_WEIGHT_EXPONENT <= 0f ? 1f : TIME_TO_FINISH_WEIGHT_EXPONENT;
+        double curvedProgress = Math.pow(progress, exponent);
+
+        return TIME_TO_FINISH_WEIGHT_START
+                + (float) curvedProgress * (TIME_TO_FINISH_WEIGHT_END - TIME_TO_FINISH_WEIGHT_START);
+    }
 
     private float calculateDistanceFromGridPathCost(MarioForwardModelSlim nextState) {
         int distanceFromGridPath = calculateDistanceFromGridPath(nextState);
@@ -133,6 +154,14 @@ public class AStarTree {
             distance++;
         } while (distance < 64);
         throw new IllegalStateException("Something seems wrong, distance to grid path shouldn't be this big.");
+    }
+
+    private float clamp(float value, float min, float max) {
+        if (value < min)
+            return min;
+        if (value > max)
+            return max;
+        return value;
     }
 
     public ArrayList<boolean[]> search(MarioTimerSlim timer) {

@@ -54,7 +54,7 @@ public class AgentBenchmark {
                     return;
                 FileWriter logWriter = new FileWriter(log);
 
-                logWriter.write("level,win/fail,% travelled,run time,game ticks,planning time,total plannings,nodes evaluated\n");
+                logWriter.write("level,win/fail,% travelled,run time,game ticks,planning time,total plannings,nodes evaluated,most backtracked nodes\n");
 
                 warmup(agentType);
                 //testOriginalLevels(agentType, logWriter);
@@ -176,7 +176,8 @@ public class AgentBenchmark {
                 + stats.totalGameTicks + ','
                 + stats.totalPlanningTime + ','
                 + stats.searchCalls + ','
-                + stats.nodesEvaluated + '\n'
+                + stats.nodesEvaluated + ','
+                + stats.mostBacktrackedNodes + '\n'
         );
     }
 

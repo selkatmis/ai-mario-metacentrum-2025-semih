@@ -1,0 +1,34 @@
+# Astar Common Task  Short Report
+
+#1 Experiment overview
+- Goal: Sweep astar parameters to study performance and robustness across levels.
+- Parameters tested:
+  - searchSteps = {1,2,3,4,5,6,7,8,9,10,20}
+  - timeToFinish weight = {0.2,0.4,0.6,0.8,1.0,1.2,1.4,1.6,1.8,2.0}
+- Levels: 15 × original, 15 × krys, 15 × patternCount.
+- Benchmark limits: 200 s on original and 30 s on krys and patternCount.
+
+#2 Data provenance
+- Compute: MetaCentrum (PBS). Earlier attempt 14477120.pbs-m1.metacentrum.cz hit walltime on 2025-11-13; rerun completed (fill final Job ID/cluster here).
+- Inputs/outputs in repo:
+  - astar-common-task.csv, astar-common-task-summary.csv (raw + summary).
+  - Heatmaps: Experiment-Results/MFF A-Star/common-task-plots/astar-win-rate-heatmap.png, Experiment-Results/MFF A-Star/common-task-plots/astar-runtime-heatmap.png.
+
+#3 Key findings (from astar-common-task-summary.csv, 45 games per point)
+- Overall: mean win-rate 80.9%, mean avgRunTime ~7.00 s per level (all combos, all 45×3 levels).
+- Best win-rate: multiple combos reach 97.8% (44/45 wins); fastest among them is searchSteps=4, timeToFinish=1.6 with avgRunTime = 1.37 s, avgNodesEvaluated = 44.2k, avgMostBacktrackedNodes = 250, avg% travelled = 0.9996.
+- Fastest high-success region: searchSteps 4–6 with timeToFinish weight 1.4–1.8; simultaneously high win-rate (aprox. 95–98%) and low runtime (approx. 1.3–3.6 s).
+- Trend by searchSteps: increasing from 1 to 4 boosts win-rate 69% → 96% and cuts runtime approx. 9.86 s → 2.94 s on average; beyond ~6 steps, runtime rises and win-rate starts to taper or drop (at 20 steps: ~9% win-rate, ~9.78 s avg runtime).
+- Trend by timeToFinish weight: increasing from 0.2 to 1.2 improves win-rate (~76% to ~81–83%) while reducing runtime (~11.0 s → ~5.5 s); heavier weights (> 1.6–2.0) give no consistent gains and can slightly slow runs.
+- Search effort/backtracking: avg most backtracked nodes falls sharply as searchSteps rises to 4–6 (~2,160 → ~230–325), aligning with the fast/high-win region.
+
+#4 Visualizations
+- Win-rate heatmap: Experiment-Results/MFF A-Star/common-task-plots/astar-win-rate-heatmap.png (ridge at steps 4–6, TTF=1.4–1.8).
+- Runtime heatmap: Experiment-Results/MFF A-Star/common-task-plots/astar-runtime-heatmap.png (valley near steps 4–5, TTF=1.6).
+See common-task-plots for files exported by the analysis script.
+
+#5 Follow-up actions
+- We could focus on the ridge: going through more searchSteps = [3..8] × TTF = [1.2..1.8].
+- Test dynamic weighting (increase or decrease heuristic weight as the goal nears) and compare against the static best (4, 1.6).
+- Break down by level pack to see if optimal values shift between original, krys, patternCount.
+- Track nodes/backtracking vs. win-rate to quantify efficiency and safety trade-offs and inform cost-function tweaks.

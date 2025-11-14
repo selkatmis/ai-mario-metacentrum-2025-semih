@@ -9,4 +9,5 @@ public class AgentStats {
     public long totalPlanningTime;
     public int searchCalls;
     public int nodesEvaluated;
+    public int mostBacktrackedNodes;
 }

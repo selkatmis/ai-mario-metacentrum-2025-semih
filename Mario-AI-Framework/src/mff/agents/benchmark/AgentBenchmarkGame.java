@@ -132,13 +132,14 @@ public class AgentBenchmarkGame {
         agentStats.percentageTravelled = (world.mario.x - world.level.marioTileX * 16)
                 / (world.level.exitTileX * 16 - world.level.marioTileX * 16);
 
-        try {
+        if (this.agent instanceof IAgentBenchmark) {
             IAgentBenchmark agentBenchmark = (IAgentBenchmark) this.agent;
             agentStats.searchCalls = agentBenchmark.getSearchCalls();
             agentStats.nodesEvaluated = agentBenchmark.getNodesEvaluated();
         }
-        catch (ClassCastException e) {
-            System.out.println("Agent doesn't implement IAgentBenchmark interface.");
+        if (this.agent instanceof IAgentBenchmarkBacktrack) {
+            IAgentBenchmarkBacktrack backtrack = (IAgentBenchmarkBacktrack) this.agent;
+            agentStats.mostBacktrackedNodes = backtrack.getMostBacktrackedNodes();
         }
         return agentStats;
     }

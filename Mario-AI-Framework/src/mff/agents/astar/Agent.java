@@ -11,6 +11,12 @@ import java.util.ArrayList;
 
 public class Agent implements IMarioAgentMFF, IAgentBenchmark, IAgentBenchmarkBacktrack {
 
+    private static final int DEFAULT_SEARCH_STEPS = 3;
+    private static final float DEFAULT_TIME_TO_FINISH_WEIGHT = 1.1f;
+
+    private static int configuredSearchSteps = DEFAULT_SEARCH_STEPS;
+    private static float configuredTimeToFinishWeight = DEFAULT_TIME_TO_FINISH_WEIGHT;
+
     private ArrayList<boolean[]> actionsList = new ArrayList<>();
     private float furthestDistance = -1;
     private boolean finished = false;
@@ -33,7 +39,7 @@ public class Agent implements IMarioAgentMFF, IAgentBenchmark, IAgentBenchmarkBa
                 return actionsList.remove(actionsList.size() - 1);
         }
 
-        AStarTree tree = new AStarTree(model, 3);
+        AStarTree tree = new AStarTree(model, configuredSearchSteps, configuredTimeToFinishWeight);
         ArrayList<boolean[]> newActionsList = tree.search(timer);
         totalSearchCalls++;
         this.totalNodesEvaluated += tree.nodesEvaluated;
@@ -78,5 +84,30 @@ public class Agent implements IMarioAgentMFF, IAgentBenchmark, IAgentBenchmarkBa
     @Override
     public String getAgentName() {
         return "MFF AStar Agent";
+    }
+
+    public static void setSearchSteps(int searchSteps) {
+        if (searchSteps <= 0)
+            throw new IllegalArgumentException("searchSteps must be positive.");
+        configuredSearchSteps = searchSteps;
+    }
+
+    public static int getSearchSteps() {
+        return configuredSearchSteps;
+    }
+
+    public static void setTimeToFinishWeight(float timeToFinishWeight) {
+        if (timeToFinishWeight <= 0)
+            throw new IllegalArgumentException("timeToFinishWeight must be positive.");
+        configuredTimeToFinishWeight = timeToFinishWeight;
+    }
+
+    public static float getTimeToFinishWeight() {
+        return configuredTimeToFinishWeight;
+    }
+
+    public static void resetParameters() {
+        configuredSearchSteps = DEFAULT_SEARCH_STEPS;
+        configuredTimeToFinishWeight = DEFAULT_TIME_TO_FINISH_WEIGHT;
     }
 }

@@ -1,0 +1,50 @@
+# Astar Elective Task Short Report
+
+#1 Experiment Overview
+We evaluated dynamic heuristic weighting for the A* Grid agent. The time-to-finish weight is adjusted as progress increases across the level, allowing both increasing and decreasing strategies:
+1. Increasing: startWeight < endWeight, the agent relies more on the heuristic near the goal.
+2. Decreasing: startWeight > endWeight, the agent relies more on the heuristic early and relaxes near the goal.
+
+Parameters:
+- searchSteps fixed at 3
+- startWeight and endWeight varied across the ranges defined in Metacentrum-Scripts/metascript-dynamic-weight.sh and Experiment-Results/MFF A-Star/dynamic-weighting/metacentrum-batches.txt (batches 1–16)
+- exponent values tested: 0.5, 1.0, 1.5, 2.0, 2.5, 3.0
+- dynamic weighting enabled for all runs
+
+The experiment covered:
+- 15 original levels
+- first 100 krys levels
+- first 100 patternCount levels
+- At least 100 parameter combinations were executed by splitting the sweep into 16 batches (batch1–batch16).
+
+#2 Data Provenance
+Runs were executed on MetaCentrum using semih_dynamic_weight.sh, with batches submitted via metascript-dynamic-weight.sh and metacentrum-batches.txt (batch1–batch16). Each batch copied its outputs to results/astar-grid-dynamic/ on the cluster.
+
+Collected results were merged into the repository under Experiment-Results/astar-grid-dynamic:
+- astar-grid-dynamic-detail-full.csv
+- astar-grid-dynamic-summary-full.csv
+
+The Java benchmark used:
+mff.agents.benchmark.AstarGridDynamicWeightBenchmark
+^ which reads SEARCH_STEPS, START_WEIGHTS, END_WEIGHTS, EXPONENTS from environment variables to control each batch.
+
+#3 Key Findings
+Across exponents and weight schedules, dynamic weighting consistently achieved very high win rates on the tested level packs. The differences between strategies are most visible in runtime and nodes evaluated.
+
+Main observations
+- Decreasing schedules with higher startWeight and lower endWeight delivered the lowest runtimes while preserving near-perfect win rates on most exponents. Intuition: strong guidance early prevents unproductive expansions and reduces search churn.
+- Increasing schedules remained very competitive in win rate, but were generally slower when endWeight was much larger than startWeight. Pushing weight too high near the goal increased nodes evaluated in some cases.
+- Exponent values around 1.5–2.5 yielded a good balance. Very low curvature (0.5) sometimes slowed the search on harder levels, and very high curvature (3.0) could inflate evaluations depending on weight endpoints, though win rates remained high.
+
+Overall, decreasing weights with startWeight in the 1.2–1.6 range and endWeight at or below 1.0 offered the best runtime without sacrificing success. Increasing weights are safe and strong but not consistently faster.
+
+#4 Visualizations
+All plots are in Experiment-Results/MFF A-Star/dynamic-weighting-plots and were generated from the merged CSV via tools/dynamic_weight_analysis.py. For each exponent, we provide heatmaps over startWeight and endWeight for:
+- win rate
+- average run time
+- average nodes evaluated
+
+#5 Follow-up Actions
+Evaluate a small control set with dynamic weighting disabled to quantify the net benefit relative to a static time-to-finish weight at the best-performing value.
+Optionally sweep searchSteps beyond 3 to see if the preferred dynamic schedule shifts with deeper lookahead.
+Consider summarizing per-pack performance (original vs. krys vs. patternCount) to highlight any pack-specific differences in preferred schedules.
