@@ -17,12 +17,12 @@ def parse_args() -> argparse.Namespace:
         "--detail",
         required=True,
         type=Path,
-        help="Path to the merged detail CSV (e.g., astar-grid-dynamic-detail-full.csv).",
+        help="Path to the merged detail CSV.",
     )
     parser.add_argument(
         "--summary",
         type=Path,
-        help="Optional path for the summary CSV output. Defaults to '<detail>_summary.csv'.",
+        help="path for the summary CSV output.",
     )
     parser.add_argument(
         "--output-dir",
@@ -139,84 +139,89 @@ def write_summary(summary_path: Path, records: Iterable[Dict[str, float]]) -> No
             writer.writerow(record)
 
 
-def build_matrix(records: List[Dict[str, float]],
-                 exponent: float,
-                 search_steps: int,
-                 metric: str) -> Tuple[List[float], List[float], List[List[float]]]:
-    relevant = [
-        record for record in records
-        if math.isclose(record["exponent"], exponent)
-        and record["searchSteps"] == search_steps
-        and record["dynamicEnabled"]
-    ]
-    if not relevant:
-        return [], [], []
+def aggregate_by_weight_pairs(records: List[Dict[str, float]]):
+    pair_stats: Dict[Tuple[float, float], Dict[str, float]] = defaultdict(
+        lambda: {
+            "count": 0,
+            "sumWinRate": 0.0,
+            "sumRunTime": 0.0,
+            "sumNodes": 0.0,
+        }
+    )
+    start_weights = set()
+    end_weights = set()
 
-    start_weights = sorted({record["startWeight"] for record in relevant})
-    end_weights = sorted({record["endWeight"] for record in relevant})
+    for record in records:
+        if not record["dynamicEnabled"]:
+            continue
+        key = (record["startWeight"], record["endWeight"])
+        stats = pair_stats[key]
+        stats["count"] += 1
+        stats["sumWinRate"] += record["winRate"]
+        stats["sumRunTime"] += record["avgRunTime"]
+        stats["sumNodes"] += record["avgNodesEvaluated"]
+        start_weights.add(record["startWeight"])
+        end_weights.add(record["endWeight"])
 
-    value_map: Dict[Tuple[float, float], float] = {
-        (record["startWeight"], record["endWeight"]): record[metric]
-        for record in relevant
-    }
+    return pair_stats, sorted(start_weights), sorted(end_weights)
 
+
+def build_heatmap_matrix(pair_stats: Dict[Tuple[float, float], Dict[str, float]],
+                         start_weights: List[float],
+                         end_weights: List[float],
+                         metric: str) -> List[List[float]]:
     matrix: List[List[float]] = []
     for end_weight in end_weights:
         row = []
         for start_weight in start_weights:
-            value = value_map.get((start_weight, end_weight))
-            if value is None:
+            stats = pair_stats.get((start_weight, end_weight))
+            if not stats or stats["count"] == 0:
                 row.append(float("nan"))
+                continue
+            if metric == "winRate":
+                value = stats["sumWinRate"] / stats["count"]
+            elif metric == "avgRunTime":
+                value = stats["sumRunTime"] / stats["count"]
+            elif metric == "avgNodesEvaluated":
+                value = stats["sumNodes"] / stats["count"]
             else:
-                row.append(value)
+                value = float("nan")
+            row.append(value)
         matrix.append(row)
+    return matrix
 
-    return start_weights, end_weights, matrix
 
+def plot_metric_heatmap(output_dir: Path,
+                        start_weights: List[float],
+                        end_weights: List[float],
+                        metric: str,
+                        label: str,
+                        formatter,
+                        matrix: List[List[float]]) -> None:
+    fig, ax = plt.subplots(figsize=(12, 6))
+    heatmap = ax.imshow(matrix, aspect="auto", origin="lower", cmap="viridis")
+    cbar = fig.colorbar(heatmap, ax=ax)
+    cbar.set_label(label)
 
-def plot_for_exponent(records: List[Dict[str, float]],
-                      exponent: float,
-                      search_steps: int,
-                      output_dir: Path) -> None:
-    metrics = {
-        "winRate": ("Win Rate", lambda v: f"{v * 100:.0f}%"),
-        "avgRunTime": ("Average Run Time (ms)", lambda v: f"{v:.0f}"),
-        "avgNodesEvaluated": ("Average Nodes Evaluated", lambda v: f"{v:.0f}"),
-    }
+    ax.set_xticks(range(len(start_weights)))
+    ax.set_xticklabels([f"{w:.2f}" for w in start_weights])
+    ax.set_yticks(range(len(end_weights)))
+    ax.set_yticklabels([f"{w:.2f}" for w in end_weights])
+    ax.set_xlabel("startWeight")
+    ax.set_ylabel("endWeight")
+    ax.set_title(f"{label} (averaged across exponents)")
 
-    start_weights, end_weights, _ = build_matrix(records, exponent, search_steps, "winRate")
-    if not start_weights:
-        return
+    for y, end_weight in enumerate(end_weights):
+        for x, start_weight in enumerate(start_weights):
+            value = matrix[y][x]
+            if math.isnan(value):
+                continue
+            ax.text(x, y, formatter(value), ha="center", va="center", color="white", fontsize=8)
 
-    for metric, (label, formatter) in metrics.items():
-        start_weights, end_weights, matrix = build_matrix(records, exponent, search_steps, metric)
-        if not matrix:
-            continue
-
-        fig, ax = plt.subplots(figsize=(12, 6))
-        heatmap = ax.imshow(matrix, aspect="auto", origin="lower", cmap="viridis")
-        cbar = fig.colorbar(heatmap, ax=ax)
-        cbar.set_label(label)
-
-        ax.set_xticks(range(len(start_weights)))
-        ax.set_xticklabels([f"{w:.2f}" for w in start_weights])
-        ax.set_yticks(range(len(end_weights)))
-        ax.set_yticklabels([f"{w:.2f}" for w in end_weights])
-        ax.set_xlabel("startWeight")
-        ax.set_ylabel("endWeight")
-        ax.set_title(f"{label} (exponent={exponent}, searchSteps={search_steps})")
-
-        for y, end_weight in enumerate(end_weights):
-            for x, start_weight in enumerate(start_weights):
-                value = matrix[y][x]
-                if math.isnan(value):
-                    continue
-                ax.text(x, y, formatter(value), ha="center", va="center", color="white", fontsize=8)
-
-        fig.tight_layout()
-        output_dir.mkdir(parents=True, exist_ok=True)
-        fig.savefig(output_dir / f"dynamic-weight-{metric}-exp-{exponent:.2f}.png", dpi=300)
-        plt.close(fig)
+    fig.tight_layout()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_dir / f"dynamic-weight-{metric}.png", dpi=300)
+    plt.close(fig)
 
 
 def main() -> None:
@@ -229,12 +234,18 @@ def main() -> None:
         summary_path = args.detail.with_name(args.detail.stem + "-summary.csv")
     write_summary(summary_path, records)
 
-    exponents = sorted({record["exponent"] for record in records})
-    search_steps_values = sorted({record["searchSteps"] for record in records})
-
-    for search_steps in search_steps_values:
-        for exponent in exponents:
-            plot_for_exponent(records, exponent, search_steps, args.output_dir)
+    pair_stats, start_weights, end_weights = aggregate_by_weight_pairs(records)
+    if start_weights and end_weights:
+        metric_configs = {
+            "winRate": ("Win Rate", lambda v: f"{v * 100:.0f}%"),
+            "avgRunTime": ("Average Run Time (ms)", lambda v: f"{v:.0f}"),
+            "avgNodesEvaluated": ("Average Nodes Evaluated", lambda v: f"{v:.0f}"),
+        }
+        for metric, (label, formatter) in metric_configs.items():
+            matrix = build_heatmap_matrix(pair_stats, start_weights, end_weights, metric)
+            plot_metric_heatmap(args.output_dir, start_weights, end_weights, metric, label, formatter, matrix)
+    else:
+        print("No dynamic-weighting data found to plot.")
 
     print(f"Summary CSV: {summary_path.resolve()}")
     print(f"Plots written to: {args.output_dir.resolve()}")
